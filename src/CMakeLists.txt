@@ -2,6 +2,8 @@ project(PseudoSaturn)
 
 enable_language(ASM)
 
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
 set(PseudoSaturn_SOURCES
 	crt0.s
 	jhloader.c
@@ -45,21 +47,15 @@ target_link_libraries(${PROJECT_NAME} ${PseudoSaturn_LIBRARIES} )
 add_custom_command(TARGET ${PROJECT_NAME}
 	POST_BUILD
 	DEPENDS ${PROJECT_NAME}
-	COMMAND ${CMAKE_OBJCOPY} --output-format=binary ${PROJECT_NAME}.elf ${CMAKE_BINARY_DIR}/PS.BIN
-    COMMENT "Generating bin file PS.bin" )
-
-add_custom_command(TARGET ${PROJECT_NAME}
-	POST_BUILD
-	DEPENDS ${CMAKE_BINARY_DIR}/PS.BIN
-	COMMAND ${CMAKE_CONCAT} ${CMAKE_SOURCE_DIR}/src/IP.BIN ${CMAKE_BINARY_DIR}/PS.BIN ${CMAKE_BINARY_DIR}/${PROJECT_NAME}.BIN
-	COMMENT "Generating bin file PseudoSaturn.bin" )
+	COMMAND ${CMAKE_OBJCOPY} --output-format=binary ${PROJECT_NAME}.elf ${CMAKE_BINARY_DIR}/${PROJECT_NAME}.BIN
+    COMMENT "Generating bin file ${PROJECT_NAME}.bin" )
 
 add_custom_command(TARGET ${PROJECT_NAME}
 	POST_BUILD
 	DEPENDS ${CMAKE_BINARY_DIR}/${PROJECT_NAME}.BIN
 	COMMAND ${CMAKE_BIN2C} 
 	ARGS ${CMAKE_BINARY_DIR}/${PROJECT_NAME}.BIN ${CMAKE_SOURCE_DIR}/src/installer/ps_rom.c ps_rom
-	COMMENT "Generating source file out of PS.bin")
+	COMMENT "Generating source file out of ${PROJECT_NAME}.bin")
 
 add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/src/logo.c
 	DEPENDS ${CMAKE_SOURCE_DIR}/src/pseudo_02_8.pcx

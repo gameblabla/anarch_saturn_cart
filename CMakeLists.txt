@@ -35,7 +35,7 @@ find_path(IAPETUS_INCLUDE_DIR
 
 if (IAPETUS_INCLUDE_DIR STREQUAL "IAPETUS_INCLUDE_DIR-NOTFOUND")
    ExternalProject_Add(iapetus
-      GIT_REPOSITORY "https://github.com/cyberwarriorx/iapetus.git"
+      GIT_REPOSITORY "https://github.com/ced2911/iapetus.git"
       LOG_DOWNLOAD 1
       LOG_CONFIGURE 1
       LOG_BUILD 1
@@ -45,15 +45,6 @@ if (IAPETUS_INCLUDE_DIR STREQUAL "IAPETUS_INCLUDE_DIR-NOTFOUND")
    ExternalProject_Get_Property(iapetus source_dir)
    set(IAPETUS_INCLUDE_DIR ${source_dir}/src)
 endif(IAPETUS_INCLUDE_DIR STREQUAL "IAPETUS_INCLUDE_DIR-NOTFOUND")
-
-ExternalProject_Add(concat
-	DOWNLOAD_COMMAND ""
-	SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/concat
-	CMAKE_GENERATOR "${CMAKE_GENERATOR}"
-	INSTALL_COMMAND ""
-	BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/concat)
-
-set(CMAKE_CONCAT "${CMAKE_CURRENT_BINARY_DIR}/concat/concat")
 
 ExternalProject_Add(bin2c
 	DOWNLOAD_COMMAND ""

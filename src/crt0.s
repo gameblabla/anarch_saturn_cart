@@ -18,6 +18,11 @@
 
 ! Based on Bart's Custom Sega Saturn Start-Up Code
 
+! include ip.bin
+    .org    0x00000000
+start_bin:
+    .incbin "ip.bin"
+
 .section .text
 
 !
