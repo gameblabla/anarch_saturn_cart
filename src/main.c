@@ -26,23 +26,22 @@
 #include <string.h>
 #include <iapetus.h>
 #include "main.h"
+#include "pcm_driver.h"
 
 font_struct main_font;
 
-
 extern u8 logo[];
-extern u32 logo_size;
+extern u32 logo_length;
 
 void do_logo()
 {
 	int ret;
 	int i,j;
 	u16 pal[256];
-	u8 crc_table[] = { 0xE3, 0xCC, 0x8A, 0xD3, 0xC5, 0xDF, 0x8A, 0xDA, 0xCB, 0xC3, 0xCE, 0x8A, 0xCC, 0xC5, 0xD8, 0x8A, 0xDE, 0xC2, 0xC3, 0xD9, 0x86, 0x8A, 0xD3, 0xC5, 0xDF, 0x8A, 0xDD, 0xCF, 0xD8, 0xCF, 0x8A, 0xD8, 0xC3, 0xDA, 0xDA, 0xCF, 0xCE, 0x8A, 0xC5, 0xCC, 0xCC, 0x8B, 0xAA };
 	u8 *img_buffer=(u8 *)0x06002000;
 
 	img_struct img;
-	if ((ret = pcx_load(logo, logo_size, &img, img_buffer)) != IAPETUS_ERR_OK)
+	if ((ret = pcx_load(logo, logo_length, &img, img_buffer)) != IAPETUS_ERR_OK)
 	{
 		vdp_printf(&main_font, 2 * 8, 1 * 8, 15, "Error loading pcx data = %d", ret);
 		wait_for_press(-1);
@@ -59,23 +58,20 @@ void do_logo()
 	vdp_disp_on();
 	vdp_fade_out(SCREEN_RBG0, 0, 255);
 	for (i = 0; i < img.height; i++)
+	{
 	   memcpy((void *)0x25E00000+(i*512), img.data+(i*img.width), img.width);
-	j=8*10;
-	for (i = 0; i < 20; i++)
-		j += main_font.drawchar(&main_font, j, 25 * 8, 1, crc_table[i]^0xAA);
-	j=8*10;
-	for (i = 22; i < sizeof(crc_table)-1; i++)
-		j += main_font.drawchar(&main_font, j, 26 * 8, 1, crc_table[i]^0xAA);
+	}
+
 	vdp_set_palette(CRM5_2048, pal, 256);
 
-	vdp_printf(&main_font, 8, 23 * 8, 1, "Copyright 2011-2015 Pseudo Saturn Team");
+	vdp_printf(&main_font, 8, 23 * 8, 1, "SUPER HOT");
 
 	vdp_fade_in(SCREEN_RBG0, 0, 2);
 	
-	while(1)
+	/*while(1)
 	{
 		vdp_vsync();
-	}
+	}*/
 
 	// Wait for a few seconds or something
 	/*for (i = 0; i < 2*60; i++) { vdp_vsync(); }
@@ -125,11 +121,11 @@ void ps_init()
 {
 	screen_settings_struct settings;
 
-	init_iapetus(RES_320x224);
+	init_iapetus(RES_352x224);
 
 	// Setup a screen for us draw on
 	settings.is_bitmap = TRUE;
-	settings.bitmap_size = BG_BITMAP512x256;
+	settings.bitmap_size = BG_BITMAP1024x512;
 	settings.transparent_bit = 0;
 	settings.color = BG_256COLOR;
 	settings.special_priority = 0;
@@ -161,11 +157,27 @@ void ps_init()
 		cl_set_service_func(ud_check);
 }
 
+
 //////////////////////////////////////////////////////////////////////////////
 
 int main()
 {
 	ps_init();
+	LoadDriver();
+	LoadSamples();
+
+	while(1)
+	{
+		TestADPCMVoice();
+		TestADPCMDCBias();
+		TestADPCMLoop();
+		TestADPCMLong();
+		TestSquare();
+		TestNoise();
+		TestSawVroom();
+		TestNightmare();
+	}
+	//ps_init();
 
    // Display Main Menu
   /* for(;;)
@@ -179,5 +191,3 @@ int main()
 
    return 0;
 }
-
-//////////////////////////////////////////////////////////////////////////////
