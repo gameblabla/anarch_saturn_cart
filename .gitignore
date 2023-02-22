@@ -1,3 +1,5 @@
 *.o
 installer.bin
 *.elf
+*.bin
+palette.c

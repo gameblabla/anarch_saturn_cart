@@ -2,7 +2,7 @@ PRGNAME     = installer.elf
 CC			= /opt/saturn/bin/sh-elf-gcc 
 
 SRCDIR		= ./src ./assets iapetus/src
-#SRCDIR		+= iapetus/src/ar iapetus/src/cd iapetus/src/file iapetus/src/modem iapetus/src/peripherals iapetus/src/scu iapetus/src/sh2 iapetus/src/sound iapetus/src/ui iapetus/src/video
+SRCDIR		+= iapetus/src/ar iapetus/src/cd iapetus/src/file iapetus/src/modem iapetus/src/peripherals iapetus/src/scu iapetus/src/sh2 iapetus/src/ui iapetus/src/video
 VPATH		= $(SRCDIR)
 SRC_C		= $(foreach dir, $(SRCDIR), $(wildcard $(dir)/*.c))
 SRC_CP		= $(foreach dir, $(SRCDIR), $(wildcard $(dir)/*.cpp))
@@ -12,24 +12,24 @@ OBJ_CP		= $(notdir $(patsubst %.cpp, %.o, $(SRC_CP)))
 OBJ_S		= $(notdir $(patsubst %.s, %.o, $(SRC_S)))
 
 
-SRC_PCX		= $(foreach dir, $(SRCDIR), $(wildcard $(dir)/*.pcx))
-C_PCX		= $(notdir $(patsubst %.pcx, %.c, $(SRC_PCX)))
-OBJ_PCX		= $(notdir $(patsubst %.pcx, %.o, $(SRC_PCX)))
+SRC_PAL		= $(foreach dir, $(SRCDIR), $(wildcard $(dir)/*.pal))
+C_PAL		= $(notdir $(patsubst %.pal, %.c, $(SRC_PAL)))
+OBJ_PAL		= $(notdir $(patsubst %.pal, %.o, $(SRC_PAL))) 
 
-OBJS		= $(OBJ_C) $(OBJ_CP) $(OBJ_PCX)
+OBJS		= $(OBJ_C) $(OBJ_CP) $(OBJ_PAL)
 
 CFLAGS		= -Ofast -m2 -mno-ieee -mbitops -mfmovd -fno-PIC -flto -Isrc/inc
 CFLAGS		+= -Isource 
 CFLAGS		+= -Iinclude
 CFLAGS		+= -DMISSING_SYSCALL_NAMES -DREENTRANT_SYSCALLS_PROVIDED 
 
-LDFLAGS     = -no-pie -Wl,--as-needed -Wl,--gc-sections -s
+LDFLAGS     = -no-pie -Wl,--as-needed -Wl,--gc-sections -s -flto
 
-all: convert_pcx $(OBJ_C) $(OBJ_S) $(PRGNAME)
+all: convert_pal $(OBJ_C) $(OBJ_S) $(PRGNAME)
 
 # Rules to make executable
 $(PRGNAME): $(OBJS)
-	$(CC) $(CFLAGS) -Wall -nostartfiles -Wl,--script,src/bart.lk $(OBJ_S) $^ lib/libiapetus.a -o $(PRGNAME) 
+	$(CC) $(CFLAGS) -Wall -nostartfiles -Wl,--script,src/bart.lk $(OBJ_S) $^ -o $(PRGNAME) 
 	/opt/saturn/bin/sh-elf-objcopy --output-format=binary $(PRGNAME) installer.bin
 
 $(OBJ_C) : %.o : %.c
@@ -38,9 +38,9 @@ $(OBJ_C) : %.o : %.c
 $(OBJ_S) : %.o : %.s
 	$(CC) $(CFLAGS) -o $@ -c $<
 	
-convert_pcx: 
-	bin2c $(SRC_PCX) $(C_PCX)  $(basename $(OBJ_PCX))
-	$(CC) $(CFLAGS) -o $(OBJ_PCX) -c  $(C_PCX)
+convert_pal: 
+	bin2c $(SRC_PAL) $(C_PAL)  $(basename $(OBJ_PAL))
+	$(CC) $(CFLAGS) -o $(OBJ_PAL) -c  $(C_PAL)
 
 clean:
 	rm -f $(PRGNAME) *.o *.bin *.elf
