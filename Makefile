@@ -1,7 +1,7 @@
 PRGNAME     = installer.elf
 CC			= /opt/saturn/bin/sh-elf-gcc 
 
-SRCDIR		= ./src ./assets iapetus/src
+SRCDIR		= ./src ./assets iapetus/src ./src/crt
 SRCDIR		+= iapetus/src/ar iapetus/src/cd iapetus/src/file iapetus/src/modem iapetus/src/peripherals iapetus/src/scu iapetus/src/sh2 iapetus/src/ui iapetus/src/video
 VPATH		= $(SRCDIR)
 SRC_C		= $(foreach dir, $(SRCDIR), $(wildcard $(dir)/*.c))
@@ -25,12 +25,22 @@ CFLAGS		+= -DMISSING_SYSCALL_NAMES -DREENTRANT_SYSCALLS_PROVIDED
 
 LDFLAGS     = -no-pie -Wl,--as-needed -Wl,--gc-sections -s -flto
 
-all: convert_pal $(OBJ_C) $(OBJ_S) $(PRGNAME)
+all: convert_pal samples $(OBJ_C) $(OBJ_S) $(PRGNAME)
 
 # Rules to make executable
 $(PRGNAME): $(OBJS)
 	$(CC) $(CFLAGS) -Wall -nostartfiles -Wl,--script,src/bart.lk $(OBJ_S) $^ -o $(PRGNAME) 
-	/opt/saturn/bin/sh-elf-objcopy --output-format=binary $(PRGNAME) installer.bin
+	/opt/saturn/bin/sh-elf-objcopy --output-format=binary $(PRGNAME) anarch_cartridge_saturn.bin
+
+ADP_OBJ=explosion-4bit.adp click-4bit.adp monster-4bit.adp
+
+samples:
+		./scspadpcm/adpencode 0 snds/explosion.wav explosion-4bit.adp
+		./scspadpcm/adpencode 0 snds/click.wav click-4bit.adp
+		./scspadpcm/adpencode 0 snds/monster.wav monster-4bit.adp
+		./scspadpcm/adplink samples.ladp $(ADP_OBJ) > src/samples.h
+		cat samples.ladp | ./scspadpcm/bintoinc > src/samples.ladp.inc
+		rm *.adp
 
 $(OBJ_C) : %.o : %.c
 	$(CC) $(CFLAGS) -o $@ -c  $<

@@ -1,0 +1,59 @@
+PRGNAME     = test.elf
+CC			= /opt/saturn/bin/sh-elf-gcc 
+
+SRCDIR		= ./src ./assets iapetus/src
+SRCDIR		+= iapetus/src/ar iapetus/src/file iapetus/src/modem iapetus/src/peripherals iapetus/src/scu iapetus/src/sh2 iapetus/src/ui iapetus/src/video
+VPATH		= $(SRCDIR)
+SRC_C		= $(foreach dir, $(SRCDIR), $(wildcard $(dir)/*.c))
+SRC_CP		= $(foreach dir, $(SRCDIR), $(wildcard $(dir)/*.cpp))
+SRC_S		= $(foreach dir, $(SRCDIR), $(wildcard $(dir)/*.s))
+OBJ_C		= $(notdir $(patsubst %.c, %.o, $(SRC_C)))
+OBJ_CP		= $(notdir $(patsubst %.cpp, %.o, $(SRC_CP)))
+OBJ_S		= $(notdir $(patsubst %.s, %.o, $(SRC_S)))
+
+
+SRC_PAL		= $(foreach dir, $(SRCDIR), $(wildcard $(dir)/*.pal))
+C_PAL		= $(notdir $(patsubst %.pal, %.c, $(SRC_PAL)))
+OBJ_PAL		= $(notdir $(patsubst %.pal, %.o, $(SRC_PAL))) 
+
+OBJS		= $(OBJ_C) $(OBJ_CP) $(OBJ_PAL)
+
+CFLAGS		= -O2 -std=gnu99 -m2 -fwrapv -fsigned-char -fno-inline -fno-unit-at-a-time -Wall -Wformat=0 -Isrc/inc -flto -DCD_BOOT
+CFLAGS		+= -Isource 
+CFLAGS		+= -Iinclude
+CFLAGS		+= -DMISSING_SYSCALL_NAMES -DREENTRANT_SYSCALLS_PROVIDED 
+
+LDFLAGS     = -no-pie -Wl,--as-needed -Wl,--gc-sections -s -flto
+
+all:  $(OBJ_C) $(OBJ_S) $(PRGNAME)
+
+
+ADP_OBJ=explosion-4bit.adp click-4bit.adp monster-4bit.adp
+
+# Rules to make executable
+$(PRGNAME): $(OBJS)
+	@echo "Converting PCM"
+	./scspadpcm/adpencode 0 snds/explosion.wav explosion-4bit.adp
+	./scspadpcm/adpencode 0 snds/click.wav click-4bit.adp
+	./scspadpcm/adpencode 0 snds/monster.wav monster-4bit.adp
+	./scspadpcm/adplink samples.ladp $(ADP_OBJ) > src/samples.h
+	cat samples.ladp | ./scspadpcm/bintoinc > src/samples.ladp.inc
+	rm *.adp
+	@echo "Compiling PALETTE"
+	bin2c $(SRC_PAL) $(C_PAL)  $(basename $(OBJ_PAL))
+	$(CC) $(CFLAGS) -o $(OBJ_PAL) -c  $(C_PAL)
+	@echo "Linking Program"
+	$(CC) $(CFLAGS) -nostdlib -Xlinker -Ttest.ld -o test.elf $(OBJ_S) $^ -lgcc -lm -lc
+	/opt/saturn/bin/sh-elf-objcopy -O binary test.elf test.bin
+	mkisofs -iso-level 1 -sysid "SEGA SEGASATURN" -appid "" -volid "ANARCH____DEMO" -volset "ANARCH____DEMO" -G boot/saturnboot.bin -o anarch_saturn_cd.iso test.bin
+
+
+$(OBJ_C) : %.o : %.c
+	$(CC) $(CFLAGS) -o $@ -c  $<
+	
+$(OBJ_S) : %.o : %.s
+	$(CC) $(CFLAGS) -o $@ -c $<
+	
+
+clean:
+	rm -f $(PRGNAME) *.o *.bin *.elf *.adp *.bin *.iso

@@ -3,3 +3,7 @@ installer.bin
 *.elf
 *.bin
 palette.c
+*.iso
+*.zip
+scspadpcm/
+samples.ladp

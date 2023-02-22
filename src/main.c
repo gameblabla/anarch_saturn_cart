@@ -71,8 +71,77 @@ uint32_t ticks = 0;
 
 font_struct main_font;
 #define EIGHTBPP 1
+#define SOUND_SUPPORT 1 // Disable this for Yabause
 
 // now implement the Anarch API functions (SFG_*)
+
+#include "types.h"
+#include "sh2.h"
+#include "smpc.h"
+#include "scsp.h"
+
+#include "adp68k.h"
+
+#include "samples.h"
+
+static const uint8 driver_data[0x2000] =
+{
+ #include "adp68k.bin.inc"
+};
+
+static const uint8 sample_data[] =
+{
+ #include "samples.ladp.inc"
+};
+
+static void Wait(uint32 t)
+{
+ TimeBegin(); do { TimeUpdate(); } while(TimeGet() < t);
+}
+
+static void Play_ADPCM_Voice(uint8_t id)
+{
+
+  while(SCSP_SCIPD & 0x20);
+  volatile ADPCMChannelControl* adpcc = &adp68k_scblock->adpcm[(0) & 0x7];
+
+  adpcc->id = id;
+  adpcc->volume[0] = 0x4000;
+  adpcc->volume[1] = 0x4000;
+  adpcc->action = ADP68K_ACTION_PLAY;
+  SCSP_SCIPD_LO = 0x20;
+
+ //static const uint8 ids[3] = { SAMPLE_ID_CLICK_4BIT, SAMPLE_ID_EXPLOSION_4BIT, SAMPLE_ID_MONSTER_4BIT };
+
+ /*for(unsigned i = 0; i < 3; i++)
+ {
+  while(SCSP_SCIPD & 0x20);
+  volatile ADPCMChannelControl* adpcc = &adp68k_scblock->adpcm[(0 + i) & 0x7];
+
+  adpcc->id = ids[i % 3];
+  adpcc->volume[0] = 0x4000;
+  adpcc->volume[1] = 0x4000;
+  adpcc->action = ADP68K_ACTION_PLAY;
+  SCSP_SCIPD_LO = 0x20;
+
+  Wait(28000000 * 3);
+ }
+
+ for(unsigned i = 0; i < 8; i++)
+ {
+  while(SCSP_SCIPD & 0x20);
+  volatile ADPCMChannelControl* adpcc = &adp68k_scblock->adpcm[(0 + i) & 0x7];
+
+  adpcc->id = ids[i % 3];
+  adpcc->volume[0] = (!(i & 1) ? 0x4000 : 0x0000);
+  adpcc->volume[1] = ( (i & 1) ? 0x4000 : 0x0000);
+  adpcc->action = ADP68K_ACTION_PLAY;
+  SCSP_SCIPD_LO = 0x20;
+
+  Wait(10000000);
+ }
+ Wait(28000000 * 3);*/
+}
 
 #ifdef EIGHTBPP
 #warning "8bpp version !"
@@ -201,8 +270,23 @@ void SFG_setMusic(uint8_t value)
 
 void SFG_playSound(uint8_t soundIndex, uint8_t volume)
 {
-}
+#ifdef SOUND_SUPPORT
+  switch (soundIndex)
+  {
+    case 2: 
+      Play_ADPCM_Voice(SAMPLE_ID_EXPLOSION_4BIT); // Monster death
+      break;
 
+    case 5:
+      Play_ADPCM_Voice(SAMPLE_ID_MONSTER_4BIT); // Hurt
+      break;
+
+    default:
+      Play_ADPCM_Voice(SAMPLE_ID_CLICK_4BIT); //Click
+      break;
+  }	
+#endif
+}
 void handleSignal(int signal)
 {
   running = 0;
@@ -210,7 +294,16 @@ void handleSignal(int signal)
 
 #define COLOR(r,g,b)    (((r)&0x1F)|((g)&0x1F)<<5|((b)&0x1F)<<10|0x8000)
 
-int main(int argc, char *argv[])
+#ifdef CD_BOOT
+int main();
+void start(void) asm("start") __attribute__((noreturn)) __attribute__((section(".init")));
+void start(void)
+{
+	main();
+}
+#endif
+
+int main()
 {
 	int i, ret;
 	screen_settings_struct settings;
@@ -251,7 +344,13 @@ int main(int argc, char *argv[])
 	running = 1;
 
 	SFG_init();
-	
+
+#ifdef SOUND_SUPPORT
+	//WriteSR(0xF0); // Gameblabla, for whatever reason, this disables controls !! (along with another one inside of LoadDriver()
+	LoadDriver();
+	LoadSamples();
+#endif
+
 	while (running)
 		mainLoopIteration();
 
